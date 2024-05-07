@@ -1,9 +1,9 @@
 
 from sqlalchemy import Column, Text, DateTime, Integer
-from Model.BaseModel import BaseModel
+from app import db
 
 
-class Client(BaseModel):
+class Client(db.Model):
     __tablename__ = 'clients'
 
     id = Column(Integer, primary_key=True)
@@ -19,4 +19,4 @@ class Client(BaseModel):
         super(Client, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f"<Client id: {self.id}"
+        return f"<Client id: {self.id}>"
