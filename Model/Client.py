@@ -13,6 +13,7 @@ class Client(BaseModel):
     client_executor = Column(Text)
     nature_of_appeal = Column(Integer)
     result = Column(Text)
+    color = Column(Text)
 
     def __repr__(self):
         return f"<Client id: {self.id}>"
