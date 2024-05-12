@@ -13,7 +13,7 @@ app.config.from_object('Config.common')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-from Model import Client
+
 from routes import *
 
 
