@@ -11,7 +11,9 @@ from app import app, engine, db
 def main_route():
     request_data = request.get_json() or {}
     EndpointFactory(request_data)
-    entities = Client.query.order_by(Client.id).all()
+    print(request_data)
+    return EndpointFactory(request_data).process()
+    # entities = Client.query.order_by(Client.id).all()
     # hui = db.session.query('select  *
     # from
     # ((SELECT nature_of_appeal, count (*) as acount
