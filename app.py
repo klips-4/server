@@ -11,6 +11,7 @@ app = Flask(__name__)
 CORS(app)
 app.config.from_object('Config.common')
 db = SQLAlchemy(app)
+Model = db.Model
 migrate = Migrate(app, db)
 
 
