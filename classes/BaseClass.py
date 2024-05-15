@@ -1,11 +1,14 @@
+import ast
 import json
-
+from Model.Client import Client
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
+from flask import jsonify
 
 from Helpers.httpResponse import HttpResponse
 from Model import BaseModel
-from app import engine
+from app import engine, db
+from serializator import *
 
 class BaseClass:
     USE_NAVIGATION: bool = True
@@ -58,7 +61,7 @@ class BaseClass:
             return HttpResponse.make(data=query.to_dict())
         else:
             return HttpResponse.make(success=False, error_text=f"Запись в таблице {self.get_model(True).__tablename__}"
-                                                              f"по ключу {key} не найдена")
+                                                               f"по ключу {key} не найдена")
 
     def list(self, **kwargs):
         """
@@ -95,24 +98,45 @@ class BaseClass:
         return HttpResponse.make(data=data)
 
     def update(self, **kwargs):
+
         """
         Обновление записи или создание записи
         :param kwargs: запись для сохранения
         :return: Обновленная запись
         """
-        record = kwargs.get('data')
 
-        if isinstance(record, str):
-            record = json.loads(record)
+        self.clientsData = kwargs.get('data') or []
+        self.active = self.clientsData.get('active')
+        self.clientsId = self.clientsData.get('row')
+        self.color = self.clientsData.get('color')
+        lst = ast.literal_eval(self.clientsId)
 
-        if not record:
-            return HttpResponse.make(success=False, error_text="Не переданные данные")
+        for client_id in lst:
+            client = Client.query.get(client_id)
+            model = self._session.query(self.get_model()).get(client_id)
 
-        if not record.get('id'):
-            return self._new(record)
-        else:
-            return self._update(record)
+            if client:
+                client.result = self.active
+                client.color = self.color
+                db.session.commit()
 
+        entities = Client.query.order_by(Client.id).all()
+
+        return HttpResponse.make(data=to_dict(entities))
+
+
+        # record = kwargs.get('data')
+        #
+        # if isinstance(record, str):
+        #     record = json.loads(record)
+        #
+        # if not record:
+        #     return HttpResponse.make(success=False, error_text="Не переданные данные")
+        #
+        # if not record.get('id'):
+        #     return self._new(record)
+        # else:
+        #     return self._update(record)
 
     def delete(self, **kwargs):
         """
@@ -163,7 +187,6 @@ class BaseClass:
 
         return result
 
-
     def _prepare_query_filter(self, query, filter_params):
         """
          Применение фильтрации к объекту записи
@@ -193,6 +216,7 @@ class BaseClass:
         :return: Обновленная запись в БД
         """
         model = self._session.query(self.get_model()).get(record.get('id'))
+        print(model)
 
         if model:
             model.from_object(record)
@@ -202,3 +226,4 @@ class BaseClass:
             return HttpResponse.make(data=model.to_dict())
         else:
             return HttpResponse.make(success=False, error_text="Нет записи для обновления БД")
+

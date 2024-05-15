@@ -8,6 +8,7 @@ class HttpResponse:
              error_text: Optional[str] = None,
              success: Optional[bool] = True,
              meta: Optional[dict] = None):
+        print(data)
         """
 
         :param data: Данные для ответа
