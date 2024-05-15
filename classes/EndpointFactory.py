@@ -46,7 +46,6 @@ class EndpointFactory:
         self._data_params = data.get('params')
 
 
-
         # self._method = self._method_name
         # data = params.get('params') or {}
         #
@@ -65,9 +64,6 @@ class EndpointFactory:
         #
         # if (self._method == 'List'):
         #     print(self.filter)
-
-
-
 
     def process(self):
         return self._method(data=self._data_params, filter=self._filter)
