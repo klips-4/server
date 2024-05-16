@@ -1,7 +1,7 @@
 import ast
 import json
 from Model.Client import Client
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 from sqlalchemy.orm import Session
 from flask import jsonify
 
@@ -9,6 +9,7 @@ from Helpers.httpResponse import HttpResponse
 from Model import BaseModel
 from app import engine, db
 from serializator import *
+
 
 class BaseClass:
     USE_NAVIGATION: bool = True
@@ -71,12 +72,11 @@ class BaseClass:
         :param kwargs:
         :return: список записей
         """
-        filter_params = kwargs.get('filter')
 
-        result = self._prepare_list_result(filter_params)
-        result = self._prepare_list(result, filter_params)
+        self.clientsData = kwargs.get('data') or []
+        entities = Client.query.order_by(Client.id).all()
 
-        return HttpResponse.make(data=result)
+        return HttpResponse.make(data=to_dict(entities))
 
     def create(self, **kwargs):
         """
@@ -84,18 +84,38 @@ class BaseClass:
         :param kwargs: запись с заполнеными полями
         :return: формат записи с предустановленными полями
         """
-        model = self.get_model(True)
         record = kwargs.get('data')
 
-        if isinstance(record, str):
-            record = json.loads(record)
+        querys = '''
+        WITH done_counts AS (
+          SELECT nature_of_appeal, COUNT(*) AS acount
+          FROM public.clients
+          WHERE client_date_application BETWEEN '2024-06-06 00:00:00' AND '2024-06-06 00:00:00'
+            AND public.clients.result = 'done'
+          GROUP BY nature_of_appeal
+        ),
+        process_counts AS (
+          SELECT nature_of_appeal, COUNT(*) AS bcount
+          FROM public.clients
+          WHERE client_date_application BETWEEN '2024-01-01 00:00:00' AND '2024-03-03 00:00:00'
+            AND public.clients.result = 'process'
+          GROUP BY nature_of_appeal
+        )
+        SELECT
+          COALESCE(a.nature_of_appeal, b.nature_of_appeal) AS nature_of_appeal,
+          a.acount,
+          b.bcount
+        FROM done_counts a
+        FULL OUTER JOIN process_counts b ON a.nature_of_appeal = b.nature_of_appeal
+        '''
 
-        if not record:
-            data = model.to_dict()
-        else:
-            data = model.from_object(record, True).to_dict()
+        result = db.session.execute(text(querys))
 
-        return HttpResponse.make(data=data)
+        results_list = [dict(zip(result.keys(), row)) for row in result]
+        print(results_list)
+
+
+        return 'HttpResponse.make(data=data)'
 
     def update(self, **kwargs):
 
@@ -123,7 +143,6 @@ class BaseClass:
         entities = Client.query.order_by(Client.id).all()
 
         return HttpResponse.make(data=to_dict(entities))
-
 
         # record = kwargs.get('data')
         #
@@ -177,8 +196,7 @@ class BaseClass:
 
         query = self._prepare_query_filter(self._session.query(self.get_model()), filter_params)
 
-        if self.FIELD_SORT:
-            query.order_by(desc(self.FIELD_SORT))
+        query.order_by(Client.client_name)
 
         count_result = query.count() if query else 0
 
@@ -226,4 +244,3 @@ class BaseClass:
             return HttpResponse.make(data=model.to_dict())
         else:
             return HttpResponse.make(success=False, error_text="Нет записи для обновления БД")
-
